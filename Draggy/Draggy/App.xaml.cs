@@ -20,12 +20,15 @@ namespace Draggy
             // Inizializza solo l'overlay window unificato
             _overlayWindow = new OverlayWindow();
             
-            // Configura il mouse hook per il futuro (disabilitato per ora)
-            // _mouseHook = new MouseHook();
-            // _mouseHook.PotentialDragStart += OnPotentialDragStart;
+            // Configura il mouse hook per rilevare i drag globalmente
+            _mouseHook = new MouseHook();
+            _mouseHook.PotentialDragStart += OnPotentialDragStart;
 
-            // Posiziona e mostra l'overlay unificato
+            // Posiziona l'overlay ma non mostrarlo inizialmente
             SetupOverlayWindow();
+            
+            // Sottoscrivi ai cambiamenti degli items per gestire la visibilità
+            ViewModels.ShelfViewModel.Instance.ItemsChanged += OnItemsChanged;
             
             // La main window è ora l'overlay
             MainWindow = _overlayWindow;
@@ -35,16 +38,102 @@ namespace Draggy
         {
             if (_overlayWindow != null)
             {
-                // Posiziona l'overlay in un angolo dello schermo
-                _overlayWindow.Left = SystemParameters.PrimaryScreenWidth - 370;
-                _overlayWindow.Top = 20;
-                _overlayWindow.Show();
+                // Calcola la posizione iniziale una sola volta
+                double initialLeft = SystemParameters.PrimaryScreenWidth - 370;
+                double initialTop = 20;
+                
+                // Imposta e salva la posizione iniziale
+                _overlayWindow.Left = initialLeft;
+                _overlayWindow.Top = initialTop;
+                _savedLeft = initialLeft;
+                _savedTop = initialTop;
+                
+                System.Diagnostics.Debug.WriteLine($"Posizione iniziale impostata: ({initialLeft}, {initialTop})");
+                
+                // Non mostrare la finestra inizialmente
+            }
+        }
+
+        private bool _wasShownByDrag = false;
+        private double _savedLeft = 0;
+        private double _savedTop = 0;
+
+        public void ResetDragFlag()
+        {
+            _wasShownByDrag = false;
+        }
+
+        public void UpdateSavedPosition(double left, double top)
+        {
+            _savedLeft = left;
+            _savedTop = top;
+        }
+
+        private void OnItemsChanged(bool hasItems)
+        {
+            if (_overlayWindow != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnItemsChanged: hasItems={hasItems}, IsVisible={_overlayWindow.IsVisible}, _wasShownByDrag={_wasShownByDrag}");
+                
+                if (hasItems)
+                {
+                    // Mostra la finestra se ci sono items (anche se preparata da drag)
+                    if (!_overlayWindow.IsVisible)
+                    {
+                        // Ripristina la posizione salvata
+                        _overlayWindow.Left = _savedLeft;
+                        _overlayWindow.Top = _savedTop;
+                        _overlayWindow.Show();
+                        System.Diagnostics.Debug.WriteLine($"Finestra mostrata in posizione ({_savedLeft}, {_savedTop})");
+                    }
+                }
+                else
+                {
+                    // Nascondi la finestra se non ci sono items
+                    if (_overlayWindow.IsVisible)
+                    {
+                        // Salva la posizione corrente prima di nascondere
+                        _savedLeft = _overlayWindow.Left;
+                        _savedTop = _overlayWindow.Top;
+                        _overlayWindow.Hide();
+                        System.Diagnostics.Debug.WriteLine($"Finestra nascosta, posizione salvata ({_savedLeft}, {_savedTop})");
+                    }
+                }
             }
         }
 
         private void OnPotentialDragStart(System.Windows.Point point)
         {
-            // Logica disabilitata per ora - utilizziamo overlay fisso
+            // Quando viene rilevato un potenziale drag, mostra l'overlay ma disabilita temporaneamente il drop
+            if (_overlayWindow != null && !_overlayWindow.IsVisible)
+            {
+                // Imposta la posizione salvata e mostra la finestra
+                _overlayWindow.Left = _savedLeft;
+                _overlayWindow.Top = _savedTop;
+                _overlayWindow.Show();
+                _wasShownByDrag = true;
+                
+                // Disabilita temporaneamente il drop per evitare interferenze
+                _overlayWindow.AllowDrop = false;
+                
+                // Riabilita il drop dopo un breve delay
+                var timer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(300)
+                };
+                timer.Tick += (s, args) =>
+                {
+                    timer.Stop();
+                    if (_overlayWindow != null)
+                    {
+                        _overlayWindow.AllowDrop = true;
+                        System.Diagnostics.Debug.WriteLine("Drop riabilitato dopo delay");
+                    }
+                };
+                timer.Start();
+                
+                System.Diagnostics.Debug.WriteLine($"Drag rilevato a ({point.X}, {point.Y}), overlay mostrato in posizione ({_savedLeft}, {_savedTop}) con drop temporaneamente disabilitato");
+            }
         }
 
         protected override void OnExit(ExitEventArgs e)

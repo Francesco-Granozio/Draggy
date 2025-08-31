@@ -16,6 +16,8 @@ namespace Draggy.ViewModels
 
         public ObservableCollection<ShelfItem> Items { get; } = new();
 
+        public event Action<bool>? ItemsChanged;
+
         public ICommand StartDragCommand { get; }
         public ICommand RemoveItemCommand { get; }
         public ICommand ClearAllCommand { get; }
@@ -25,22 +27,41 @@ namespace Draggy.ViewModels
             StartDragCommand = new RelayCommand<ShelfItem>(StartDrag);
             RemoveItemCommand = new RelayCommand<ShelfItem>(RemoveItem);
             ClearAllCommand = new RelayCommand(ClearAll);
+            
+            // Sottoscrivi ai cambiamenti della collezione
+            Items.CollectionChanged += (s, e) => 
+            {
+                ItemsChanged?.Invoke(Items.Count > 0);
+            };
         }
 
         public void AddItem(string filePath)
         {
             try
             {
-                var item = new ShelfItem
-                {
-                    FilePath = filePath,
-                    Thumbnail = ShellThumbnail.GetThumbnail(filePath, 48)
-                };
+                // Evita duplicati basandosi sul nome del file e dimensione
+                var fileName = Path.GetFileName(filePath);
+                var fileInfo = new FileInfo(filePath);
                 
-                // Evita duplicati
-                if (!Items.Any(x => x.FilePath == filePath))
+                // Controlla se esiste già un file con lo stesso nome e dimensione
+                var existingItem = Items.FirstOrDefault(x => 
+                    Path.GetFileName(x.FilePath) == fileName && 
+                    new FileInfo(x.FilePath).Length == fileInfo.Length);
+                
+                if (existingItem == null)
                 {
+                    var item = new ShelfItem
+                    {
+                        FilePath = filePath,
+                        Thumbnail = ShellThumbnail.GetThumbnail(filePath, 48)
+                    };
+                    
                     Items.Add(item);
+                    System.Diagnostics.Debug.WriteLine($"Aggiunto nuovo item: {fileName}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Item duplicato ignorato: {fileName}");
                 }
             }
             catch (Exception ex)
@@ -63,12 +84,14 @@ namespace Draggy.ViewModels
             if (item != null)
             {
                 Items.Remove(item);
+                // La finestra verrà nascosta automaticamente se non ci sono più items
             }
         }
 
         private void ClearAll()
         {
             Items.Clear();
+            // La finestra verrà nascosta automaticamente tramite l'evento ItemsChanged
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

@@ -34,6 +34,13 @@ namespace Draggy
         {
             // Permette di trascinare la finestra cliccando sull'header
             this.DragMove();
+            
+            // Aggiorna le posizioni salvate dopo il movimento
+            if (App.Current is App app)
+            {
+                app.UpdateSavedPosition(this.Left, this.Top);
+                System.Diagnostics.Debug.WriteLine($"Posizione salvata: ({this.Left}, {this.Top})");
+            }
         }
 
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -120,12 +127,35 @@ namespace Draggy
             // Ripristina la trasparenza normale quando il drag esce dalla finestra
             MainBorder.Background = new SolidColorBrush(Color.FromArgb(21, 255, 255, 255)); // #15FFFFFF
             MainBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(48, 204, 204, 204)); // #30CCCCCC
+            
+            // Reset del flag di drag dopo un breve delay
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(500)
+            };
+            timer.Tick += (s, args) =>
+            {
+                timer.Stop();
+                if (App.Current is App app)
+                {
+                    app.ResetDragFlag();
+                    System.Diagnostics.Debug.WriteLine("Drag leave - reset flag");
+                }
+            };
+            timer.Start();
         }
 
         private async void Grid_Drop(object sender, DragEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("Drop event triggered!");
             e.Handled = true;
+            
+            // Reset del flag di drag dopo il drop
+            if (App.Current is App app)
+            {
+                app.ResetDragFlag();
+                System.Diagnostics.Debug.WriteLine("Drop - reset flag");
+            }
             
             // Ripristina la trasparenza normale dopo il drop
             MainBorder.Background = new SolidColorBrush(Color.FromArgb(21, 255, 255, 255)); // #15FFFFFF
