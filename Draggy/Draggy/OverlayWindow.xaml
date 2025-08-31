@@ -5,44 +5,127 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Draggy"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Draggy"
+    Width="150"
+    Height="150"
     AllowDrop="True"
     AllowsTransparency="True"
     Background="Transparent"
-    ShowInTaskbar="False"
+    ShowInTaskbar="True"
     Topmost="True"
     WindowStyle="None"
     mc:Ignorable="d">
     <Border
+        x:Name="MainBorder"
         AllowDrop="True"
-        Background="#CC4CAF50"
-        BorderBrush="#4CAF50"
-        BorderThickness="2"
-        CornerRadius="8"
+        Background="#20FFFFFF"
+        BorderBrush="#40CCCCCC"
+        BorderThickness="1"
+        CornerRadius="12"
         DragEnter="Grid_DragEnter"
+        DragLeave="Grid_DragLeave"
         DragOver="Grid_DragOver"
         Drop="Grid_Drop">
-        <StackPanel
-            HorizontalAlignment="Center"
-            VerticalAlignment="Center">
-            <Ellipse
-                Width="40"
-                Height="40"
-                Fill="White"
-                Margin="0,10,0,5" />
-            <TextBlock
-                FontSize="12"
-                FontWeight="Bold"
-                Foreground="White"
-                HorizontalAlignment="Center"
-                Text="DROP HERE"
-                TextAlignment="Center" />
-            <TextBlock
-                FontSize="10"
-                Foreground="White"
-                HorizontalAlignment="Center"
-                Margin="5,5,5,10"
-                Text="Drag files here to add to shelf"
-                TextAlignment="Center" />
-        </StackPanel>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!--  Header con titolo e pulsante clear  -->
+            <Border
+                Grid.Row="0"
+                Padding="12,8"
+                Background="#804CAF50"
+                CornerRadius="12,12,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="📁 Draggy" />
+                    <Button
+                        Margin="10,0,0,0"
+                        Padding="5,2"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Command="{Binding ClearAllCommand}"
+                        Content="🗑️"
+                        FontSize="12"
+                        Foreground="White" />
+                </StackPanel>
+            </Border>
+
+            <!--  Area shelf con scroll  -->
+            <ScrollViewer
+                Grid.Row="1"
+                Margin="8"
+                VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="ItemsControlFiles" ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Margin="2,4"
+                                Padding="8"
+                                Background="#E0FFFFFF"
+                                BorderBrush="#80E0E0E0"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Cursor="Hand">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Image
+                                        Grid.Column="0"
+                                        Width="32"
+                                        Height="32"
+                                        Margin="0,0,8,0"
+                                        Source="{Binding Thumbnail}"
+                                        Stretch="Uniform" />
+
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="11"
+                                            FontWeight="SemiBold"
+                                            Foreground="#333333"
+                                            Text="{Binding FileName}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            FontSize="9"
+                                            Foreground="#666666"
+                                            Text="{Binding FilePath}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+
+                                    <Button
+                                        Grid.Column="2"
+                                        Padding="4"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Content="❌"
+                                        FontSize="10"
+                                        Foreground="#FF4444" />
+                                </Grid>
+
+                                <Border.InputBindings>
+                                    <MouseBinding
+                                        Command="{Binding DataContext.StartDragCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        Gesture="LeftClick" />
+                                </Border.InputBindings>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
     </Border>
 </Window>
+

@@ -12,38 +12,31 @@ namespace Draggy
     {
         private MouseHook? _mouseHook;
         private OverlayWindow? _overlayWindow;
-        private ShelfWindow? _shelfWindow;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            // Inizializza le finestre
+            // Inizializza solo l'overlay window unificato
             _overlayWindow = new OverlayWindow();
-            _shelfWindow = new ShelfWindow();
-
+            
             // Configura il mouse hook per il futuro (disabilitato per ora)
             // _mouseHook = new MouseHook();
             // _mouseHook.PotentialDragStart += OnPotentialDragStart;
 
-            // Mostra la shelf window
-            _shelfWindow.Show();
-            
-            // Mostra anche l'overlay in posizione fissa per testing
+            // Posiziona e mostra l'overlay unificato
             SetupOverlayWindow();
             
-            // La main window può rimanere nascosta (è solo per prototipo)
-            MainWindow = _shelfWindow;
+            // La main window è ora l'overlay
+            MainWindow = _overlayWindow;
         }
 
         private void SetupOverlayWindow()
         {
             if (_overlayWindow != null)
             {
-                // Posiziona l'overlay in un angolo dello schermo per testing
-                _overlayWindow.Width = 200;
-                _overlayWindow.Height = 150;
-                _overlayWindow.Left = SystemParameters.PrimaryScreenWidth - 220;
+                // Posiziona l'overlay in un angolo dello schermo
+                _overlayWindow.Left = SystemParameters.PrimaryScreenWidth - 370;
                 _overlayWindow.Top = 20;
                 _overlayWindow.Show();
             }

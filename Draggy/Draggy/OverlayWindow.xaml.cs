@@ -23,6 +23,11 @@ namespace Draggy
         public OverlayWindow()
         {
             InitializeComponent();
+            DataContext = ViewModels.ShelfViewModel.Instance;
+            
+            // Debug: verifica che il DataContext sia impostato correttamente
+            System.Diagnostics.Debug.WriteLine($"DataContext impostato: {DataContext != null}");
+            System.Diagnostics.Debug.WriteLine($"ItemsControl DataContext: {ItemsControlFiles.DataContext != null}");
         }
 
         private void Grid_DragEnter(object sender, DragEventArgs e)
@@ -31,6 +36,10 @@ namespace Draggy
             {
                 e.Effects = DragDropEffects.Copy;
                 System.Diagnostics.Debug.WriteLine("DragEnter: File rilevato");
+                
+                // Aumenta la trasparenza quando inizia il drag
+                MainBorder.Background = new SolidColorBrush(Color.FromArgb(180, 255, 255, 255));
+                MainBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(200, 76, 175, 80));
             }
             else
             {
@@ -52,9 +61,21 @@ namespace Draggy
             e.Handled = true;
         }
 
+        private void Grid_DragLeave(object sender, DragEventArgs e)
+        {
+            // Ripristina la trasparenza normale quando il drag esce dalla finestra
+            MainBorder.Background = new SolidColorBrush(Color.FromArgb(32, 255, 255, 255));
+            MainBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(64, 204, 204, 204));
+        }
+
         private async void Grid_Drop(object sender, DragEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine("Drop event triggered!");
+            e.Handled = true;
+            
+            // Ripristina la trasparenza normale dopo il drop
+            MainBorder.Background = new SolidColorBrush(Color.FromArgb(32, 255, 255, 255));
+            MainBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(64, 204, 204, 204));
             
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
@@ -82,17 +103,17 @@ namespace Draggy
                     }
                 }
                 
-                // Mostra un feedback positivo
-                MessageBox.Show($"Aggiunt{(files.Length == 1 ? "o" : "i")} {files.Length} file alla shelf!", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Mostra un feedback positivo ma più discreto
+                System.Diagnostics.Debug.WriteLine($"Aggiunt{(files.Length == 1 ? "o" : "i")} {files.Length} file alla shelf!");
+                
+                // Forza l'aggiornamento dell'UI
+                ItemsControlFiles.Items.Refresh();
             }
             else
             {
                 // caso di dati "virtuali" o altro - più complesso
                 System.Diagnostics.Debug.WriteLine("Dati non-file trascinati - funzionalità non ancora implementata");
             }
-
-            // Non nascondere l'overlay - resta sempre visibile per testing
-            // this.Hide();
         }
     }
 
