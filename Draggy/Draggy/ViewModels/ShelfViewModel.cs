@@ -2,10 +2,12 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Windows.Media;
 using Draggy.Services;
+using Draggy.Commands;
 
 namespace Draggy.ViewModels
 {
@@ -39,25 +41,38 @@ namespace Draggy.ViewModels
         {
             try
             {
-                // Evita duplicati basandosi sul nome del file e dimensione
-                var fileName = Path.GetFileName(filePath);
+                // Ottimizzazione: usa FileInfo una sola volta
                 var fileInfo = new FileInfo(filePath);
+                var fileName = fileInfo.Name;
                 
                 // Controlla se esiste già un file con lo stesso nome e dimensione
                 var existingItem = Items.FirstOrDefault(x => 
-                    Path.GetFileName(x.FilePath) == fileName && 
-                    new FileInfo(x.FilePath).Length == fileInfo.Length);
+                {
+                    try
+                    {
+                        var existingFileInfo = new FileInfo(x.FilePath);
+                        return existingFileInfo.Name == fileName && existingFileInfo.Length == fileInfo.Length;
+                    }
+                    catch
+                    {
+                        return false; // Se non riesce a leggere il file, considera diverso
+                    }
+                });
                 
                 if (existingItem == null)
                 {
                     var item = new ShelfItem
                     {
                         FilePath = filePath,
-                        Thumbnail = ShellThumbnail.GetThumbnail(filePath, 48)
+                        // Usa il nuovo sistema di caching per i thumbnail
+                        Thumbnail = ThumbnailCache.GetThumbnail(filePath, 48)
                     };
                     
                     Items.Add(item);
                     System.Diagnostics.Debug.WriteLine($"Aggiunto nuovo item: {fileName}");
+                    
+                    // Log delle statistiche della cache
+                    LogCacheStatistics();
                 }
                 else
                 {
@@ -83,15 +98,41 @@ namespace Draggy.ViewModels
         {
             if (item != null)
             {
+                // Rimuovi il file dalla cache fisica
+                CacheService.DeleteFromCache(item.FilePath);
+                
+                // Rimuovi il thumbnail dal cache
+                ThumbnailCache.RemoveFromCache(item.FilePath);
+                
                 Items.Remove(item);
-                // La finestra verrà nascosta automaticamente se non ci sono più items
+                
+                System.Diagnostics.Debug.WriteLine($"Item rimosso: {Path.GetFileName(item.FilePath)}");
+                LogCacheStatistics();
             }
         }
 
         private void ClearAll()
         {
+            // Pulisci tutti i file dalla cache fisica
+            foreach (var item in Items)
+            {
+                CacheService.DeleteFromCache(item.FilePath);
+                ThumbnailCache.RemoveFromCache(item.FilePath);
+            }
+            
             Items.Clear();
-            // La finestra verrà nascosta automaticamente tramite l'evento ItemsChanged
+            System.Diagnostics.Debug.WriteLine("Tutti gli items rimossi e cache pulita");
+            LogCacheStatistics();
+        }
+
+        private void LogCacheStatistics()
+        {
+            var cacheSize = CacheService.GetCacheSize();
+            var cacheFiles = CacheService.GetCacheFileCount();
+            var thumbnailCacheSize = ThumbnailCache.GetCacheSize();
+            var thumbnailMemoryUsage = ThumbnailCache.GetEstimatedMemoryUsage();
+            
+            System.Diagnostics.Debug.WriteLine($"Statistiche cache - File: {cacheFiles} ({cacheSize / (1024 * 1024)}MB), Thumbnail: {thumbnailCacheSize} ({thumbnailMemoryUsage / 1024}KB)");
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -99,48 +140,5 @@ namespace Draggy.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-    }
-
-    // Comando helper semplice
-    public class RelayCommand<T> : ICommand
-    {
-        private readonly Action<T?> _execute;
-        private readonly Func<T?, bool>? _canExecute;
-
-        public RelayCommand(Action<T?> execute, Func<T?, bool>? canExecute = null)
-        {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-        }
-
-        public event EventHandler? CanExecuteChanged
-        {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
-        }
-
-        public bool CanExecute(object? parameter) => _canExecute?.Invoke((T?)parameter) ?? true;
-        public void Execute(object? parameter) => _execute((T?)parameter);
-    }
-
-    public class RelayCommand : ICommand
-    {
-        private readonly Action _execute;
-        private readonly Func<bool>? _canExecute;
-
-        public RelayCommand(Action execute, Func<bool>? canExecute = null)
-        {
-            _execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            _canExecute = canExecute;
-        }
-
-        public event EventHandler? CanExecuteChanged
-        {
-            add { CommandManager.RequerySuggested += value; }
-            remove { CommandManager.RequerySuggested -= value; }
-        }
-
-        public bool CanExecute(object? parameter) => _canExecute?.Invoke() ?? true;
-        public void Execute(object? parameter) => _execute();
     }
 }
