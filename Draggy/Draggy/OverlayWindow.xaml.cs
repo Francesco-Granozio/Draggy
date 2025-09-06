@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Interop;
 
 namespace Draggy
 {
@@ -28,6 +29,25 @@ namespace Draggy
             // Debug: verifica che il DataContext sia impostato correttamente
             System.Diagnostics.Debug.WriteLine($"DataContext impostato: {DataContext != null}");
             System.Diagnostics.Debug.WriteLine($"ItemsControl DataContext: {ItemsControlFiles.DataContext != null}");
+
+            // Salva automaticamente le dimensioni quando cambiano
+            this.SizeChanged += OverlayWindow_SizeChanged;
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var source = (HwndSource)PresentationSource.FromVisual(this);
+            source.AddHook(WndProc);
+        }
+
+        private void OverlayWindow_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // Persisti dimensioni e posizione correnti
+            if (App.Current is App app)
+            {
+                app.SaveWindowBounds();
+            }
         }
 
         private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -92,6 +112,11 @@ namespace Draggy
                 _resizeStartSize = new Size(this.Width, this.Height);
                 this.CaptureMouse();
                 e.Handled = true;
+                if (App.Current is App app)
+                {
+                    app.StartWindowResize();
+                    this.AllowDrop = false;
+                }
             }
         }
 
@@ -117,8 +142,115 @@ namespace Draggy
             {
                 _isResizing = false;
                 this.ReleaseMouseCapture();
+                // Salva le dimensioni aggiornate al termine del resize
+                if (App.Current is App app)
+                {
+                    app.SaveWindowBounds();
+                    app.EndWindowResize();
+                    this.AllowDrop = true;
+                }
             }
             base.OnMouseLeftButtonUp(e);
+        }
+
+        private const int WM_NCHITTEST = 0x0084;
+        private const int WM_ENTERSIZEMOVE = 0x0231;
+        private const int WM_EXITSIZEMOVE = 0x0232;
+        private const int HTNOWHERE = 0;
+        private const int HTCLIENT = 1;
+        private const int HTCAPTION = 2;
+        private const int HTLEFT = 10;
+        private const int HTRIGHT = 11;
+        private const int HTTOP = 12;
+        private const int HTTOPLEFT = 13;
+        private const int HTTOPRIGHT = 14;
+        private const int HTBOTTOM = 15;
+        private const int HTBOTTOMLEFT = 16;
+        private const int HTBOTTOMRIGHT = 17;
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_NCHITTEST)
+            {
+                // Estrae coordinate schermo
+                int x = (short)((long)lParam & 0xFFFF);
+                int y = (short)(((long)lParam >> 16) & 0xFFFF);
+                var screenPoint = new System.Windows.Point(x, y);
+                var windowPoint = this.PointFromScreen(screenPoint);
+
+                double grip = 8.0;
+                bool left = windowPoint.X >= 0 && windowPoint.X < grip;
+                bool right = windowPoint.X <= this.ActualWidth && windowPoint.X > this.ActualWidth - grip;
+                bool top = windowPoint.Y >= 0 && windowPoint.Y < grip;
+                bool bottom = windowPoint.Y <= this.ActualHeight && windowPoint.Y > this.ActualHeight - grip;
+
+                if (left && top)
+                {
+                    handled = true;
+                    return new IntPtr(HTTOPLEFT);
+                }
+                if (right && top)
+                {
+                    handled = true;
+                    return new IntPtr(HTTOPRIGHT);
+                }
+                if (left && bottom)
+                {
+                    handled = true;
+                    return new IntPtr(HTBOTTOMLEFT);
+                }
+                if (right && bottom)
+                {
+                    handled = true;
+                    return new IntPtr(HTBOTTOMRIGHT);
+                }
+                if (left)
+                {
+                    handled = true;
+                    return new IntPtr(HTLEFT);
+                }
+                if (right)
+                {
+                    handled = true;
+                    return new IntPtr(HTRIGHT);
+                }
+                if (top)
+                {
+                    handled = true;
+                    return new IntPtr(HTTOP);
+                }
+                if (bottom)
+                {
+                    handled = true;
+                    return new IntPtr(HTBOTTOM);
+                }
+
+                // Lascia alla gestione normale
+                return IntPtr.Zero;
+            }
+
+            if (msg == WM_ENTERSIZEMOVE)
+            {
+                if (App.Current is App app)
+                {
+                    app.StartWindowResize();
+                    this.AllowDrop = false;
+                }
+                return IntPtr.Zero;
+            }
+
+            if (msg == WM_EXITSIZEMOVE)
+            {
+                if (App.Current is App app)
+                {
+                    app.EndWindowResize();
+                    this.AllowDrop = true;
+                    app.SaveWindowBounds();
+                }
+                return IntPtr.Zero;
+            }
+
+            return IntPtr.Zero;
         }
 
         private void Grid_DragEnter(object sender, DragEventArgs e)

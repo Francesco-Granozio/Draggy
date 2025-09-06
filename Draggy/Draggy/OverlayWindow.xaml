@@ -8,6 +8,8 @@
     Title="Draggy"
     Width="250"
     Height="400"
+    MinWidth="220"
+    MinHeight="160"
     AllowDrop="True"
     AllowsTransparency="True"
     Background="Transparent"

@@ -49,18 +49,21 @@ namespace Draggy
         {
             if (_overlayWindow != null)
             {
-                // Carica la posizione salvata se disponibile, altrimenti calcola una posizione di default
-                double initialLeft;
-                double initialTop;
-                if (!Services.SettingsService.TryLoadWindowPosition(out initialLeft, out initialTop))
+                // Carica posizione e dimensioni salvate se disponibili, altrimenti default
+                double initialLeft, initialTop, initialWidth, initialHeight;
+                if (!Services.SettingsService.TryLoadWindowSettings(out initialLeft, out initialTop, out initialWidth, out initialHeight))
                 {
                     initialLeft = SystemParameters.PrimaryScreenWidth - 370;
                     initialTop = 20;
+                    initialWidth = 300; // match XAML default
+                    initialHeight = 400; // match XAML default
                 }
                 
-                // Imposta e salva la posizione iniziale
+                // Imposta e salva la posizione e dimensioni iniziali
                 _overlayWindow.Left = initialLeft;
                 _overlayWindow.Top = initialTop;
+                _overlayWindow.Width = initialWidth > 0 ? initialWidth : _overlayWindow.Width;
+                _overlayWindow.Height = initialHeight > 0 ? initialHeight : _overlayWindow.Height;
                 _savedLeft = initialLeft;
                 _savedTop = initialTop;
                 
@@ -74,6 +77,7 @@ namespace Draggy
         private double _savedLeft = 0;
         private double _savedTop = 0;
         private bool _isWindowBeingMoved = false;
+        private bool _isWindowBeingResized = false;
 
         public void ResetDragFlag()
         {
@@ -86,6 +90,12 @@ namespace Draggy
             _savedTop = top;
             // Persisti la posizione su disco
             Services.SettingsService.SaveWindowPosition(left, top);
+        }
+
+        public void SaveWindowBounds()
+        {
+            if (_overlayWindow == null) return;
+            Services.SettingsService.SaveWindowSettings(_overlayWindow.Left, _overlayWindow.Top, _overlayWindow.Width, _overlayWindow.Height);
         }
 
         private void OnItemsChanged(bool hasItems)
@@ -115,7 +125,7 @@ namespace Draggy
         private void OnPotentialDragStart(System.Windows.Point point)
         {
             // Quando viene rilevato un potenziale drag, mostra l'overlay ma disabilita temporaneamente il drop
-            if (_overlayWindow != null && !_isWindowBeingMoved)
+            if (_overlayWindow != null && !_isWindowBeingMoved && !_isWindowBeingResized)
             {
                 // Riporta la finestra nella posizione salvata (senza Show/Hide) per non perdere il drag
                 _overlayWindow.Left = _savedLeft;
@@ -202,6 +212,16 @@ namespace Draggy
         public void EndWindowMove()
         {
             _isWindowBeingMoved = false;
+        }
+
+        public void StartWindowResize()
+        {
+            _isWindowBeingResized = true;
+        }
+
+        public void EndWindowResize()
+        {
+            _isWindowBeingResized = false;
         }
     }
 }

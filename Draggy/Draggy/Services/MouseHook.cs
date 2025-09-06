@@ -57,8 +57,19 @@ namespace Draggy.Services
                     {
                         var dx = Math.Abs(pt.X - _downPos.X);
                         var dy = Math.Abs(pt.Y - _downPos.Y);
-                        if ((dx > SystemParameters.MinimumHorizontalDragDistance ||
-                             dy > SystemParameters.MinimumVerticalDragDistance))
+                        bool ignore = false;
+                        if (Application.Current is Draggy.App app)
+                        {
+                            // Ignora i drag mentre la finestra si muove o viene ridimensionata
+                            var isMovingField = typeof(Draggy.App).GetField("_isWindowBeingMoved", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            var isResizingField = typeof(Draggy.App).GetField("_isWindowBeingResized", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            bool isMoving = (bool)(isMovingField?.GetValue(app) ?? false);
+                            bool isResizing = (bool)(isResizingField?.GetValue(app) ?? false);
+                            ignore = isMoving || isResizing;
+                        }
+
+                        if (!ignore && (dx > SystemParameters.MinimumHorizontalDragDistance ||
+                                        dy > SystemParameters.MinimumVerticalDragDistance))
                         {
                             // Consider this a potential drag start
                             PotentialDragStart?.Invoke(_downPos);
