@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using Draggy.Services;
 using System.Windows.Input;
 using Draggy.Commands;
 
@@ -150,6 +151,28 @@ namespace Draggy.ViewModels
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Errore apertura cartella: {ex.Message}");
+            }
+        }
+
+        public ImageSource? FileIcon16
+        {
+            get
+            {
+                try
+                {
+                    var path = GetBestPath();
+                    if (File.Exists(path))
+                    {
+                        // Preferisci l'icona del sistema operativo
+                        var icon = ShellThumbnail.GetFileIcon(path, 16);
+                        if (icon != null)
+                            return icon;
+                        // Fallback: miniatura
+                        return ThumbnailCache.GetThumbnail(path, 16);
+                    }
+                }
+                catch { }
+                return null;
             }
         }
     }

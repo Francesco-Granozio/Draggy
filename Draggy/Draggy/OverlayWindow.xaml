@@ -72,31 +72,29 @@
                             Text="Draggy" />
                     </StackPanel>
                     
+                    <!-- Clear list (delete_items.png) -->
                     <Button
                         Grid.Column="1"
                         Margin="8,0,0,0"
-                        Padding="6,2"
+                        Padding="4"
                         Background="Transparent"
                         BorderThickness="0"
                         Command="{Binding ClearAllCommand}"
-                        Content="Clear"
-                        FontSize="11"
-                        FontFamily="Segoe UI"
-                        FontWeight="Medium"
-                        Foreground="#007AFF" />
+                        ToolTip="Rimuove tutti i file dalla lista e pulisce anche la cache thumbnail. I file nella cache vengono rimossi.">
+                        <Image Width="16" Height="16" Source="pack://application:,,,/Resources/delete_items.png"/>
+                    </Button>
                         
+                    <!-- Clear cache (delete_cache.png) -->
                     <Button
                         Grid.Column="2"
                         Margin="8,0,0,0"
-                        Padding="6,2"
+                        Padding="4"
                         Background="Transparent"
                         BorderThickness="0"
                         Click="ClearCacheButton_Click"
-                        Content="Cache"
-                        FontSize="11"
-                        FontFamily="Segoe UI"
-                        FontWeight="Medium"
-                        Foreground="#007AFF" />
+                        ToolTip="Cancella l’intera cache locale dei file salvati e miniature. Utile per liberare spazio o ripartire da zero.">
+                        <Image Width="16" Height="16" Source="pack://application:,,,/Resources/delete_cache.png"/>
+                    </Button>
                         
                     <Button
                         Grid.Column="3"
@@ -116,19 +114,19 @@
                          <!--  Area shelf con scroll  -->
              <ScrollViewer
                  Grid.Row="1"
-                 Margin="12"
+                 Margin="10"
                  VerticalScrollBarVisibility="Auto">
                  <ItemsControl x:Name="ItemsControlFiles" ItemsSource="{Binding Items}">
                      <ItemsControl.ItemTemplate>
                          <DataTemplate>
                              <Border
-                                 Margin="2,6"
-                                 Padding="12"
-                                 Background="#F0FFFFFF"
-                                 BorderBrush="#20E5E5E7"
+                                 Margin="2,4"
+                                 Padding="6"
+                                 Background="#F8FFFFFF"
+                                 BorderBrush="#15C0C0C0"
                                  BorderThickness="1"
-                                 CornerRadius="10"
-                                 Cursor="Hand">
+                                 CornerRadius="8"
+                                 Cursor="Arrow">
                                  <Grid>
                                      <Grid.ColumnDefinitions>
                                          <ColumnDefinition Width="Auto" />
@@ -138,22 +136,22 @@
 
                                      <Image
                                          Grid.Column="0"
-                                         Width="36"
-                                         Height="36"
-                                         Margin="0,0,12,0"
+                                         Width="22"
+                                         Height="22"
+                                         Margin="0,0,8,0"
                                          Source="{Binding Thumbnail}"
                                          Stretch="Uniform" />
 
                                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                          <TextBlock
-                                             FontSize="12"
+                                             FontSize="10"
                                              FontWeight="Medium"
                                              FontFamily="Segoe UI"
                                              Foreground="#1D1D1F"
                                              Text="{Binding FileName}"
                                              TextTrimming="CharacterEllipsis" />
                                          <TextBlock
-                                             FontSize="10"
+                                             FontSize="8"
                                              FontFamily="Segoe UI"
                                              Foreground="#86868B"
                                              Text="{Binding OriginalPath}"
@@ -162,16 +160,32 @@
 
                                      <Button
                                          Grid.Column="2"
-                                         Padding="6"
+                                         Padding="2"
                                          Background="Transparent"
                                          BorderThickness="0"
                                          Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                          CommandParameter="{Binding}"
                                          Content="×"
-                                         FontSize="14"
+                                         FontSize="12"
                                          FontFamily="Segoe UI"
                                          FontWeight="SemiBold"
-                                         Foreground="#FF3B30" />
+                                         Foreground="#9AA0A6">
+                                         <Button.Style>
+                                             <Style TargetType="Button">
+                                                 <Setter Property="Visibility" Value="Collapsed"/>
+                                                 <Setter Property="Foreground" Value="#9AA0A6"/>
+                                                 <Style.Triggers>
+                                                     <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=IsMouseOver}" Value="True">
+                                                         <Setter Property="Visibility" Value="Visible"/>
+                                                         <Setter Property="Foreground" Value="#FF3B30"/>
+                                                     </DataTrigger>
+                                                     <Trigger Property="IsMouseOver" Value="True">
+                                                         <Setter Property="Foreground" Value="#FF3B30"/>
+                                                     </Trigger>
+                                                 </Style.Triggers>
+                                             </Style>
+                                         </Button.Style>
+                                     </Button>
                                  </Grid>
 
                                  <Border.ContextMenu>
@@ -185,19 +199,19 @@
                                          <MenuItem Header="Apri file"
                                                    Command="{Binding OpenFileCommand}">
                                              <MenuItem.Icon>
-                                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;"/>
+                                                 <Image Width="16" Height="16" Source="{Binding FileIcon16}"/>
                                              </MenuItem.Icon>
                                          </MenuItem>
                                          <MenuItem Header="Copia percorso"
                                                    Command="{Binding CopyPathCommand}">
                                              <MenuItem.Icon>
-                                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;"/>
+                                                 <Image Width="16" Height="16" Source="pack://application:,,,/Resources/copy_path.png"/>
                                              </MenuItem.Icon>
                                          </MenuItem>
                                          <MenuItem Header="Apri percorso"
                                                    Command="{Binding OpenFolderCommand}">
                                              <MenuItem.Icon>
-                                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;"/>
+                                                 <Image Width="16" Height="16" Source="pack://application:,,,/Resources/open_folder.png"/>
                                              </MenuItem.Icon>
                                          </MenuItem>
                                      </ContextMenu>

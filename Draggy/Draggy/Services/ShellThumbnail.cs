@@ -28,6 +28,13 @@ namespace Draggy.Services
         [DllImport("gdi32.dll")]
         static extern bool DeleteObject(IntPtr hObject);
 
+        [Flags]
+        private enum SIIGBF : uint
+        {
+            THUMBNAILONLY = 0x00000001,
+            ICONONLY = 0x00000004,
+        }
+
         public static BitmapSource? GetThumbnail(string path, int size)
         {
             try
@@ -56,6 +63,39 @@ namespace Draggy.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Errore nel generare thumbnail per {path}: {ex.Message}");
+                return null;
+            }
+        }
+
+        public static BitmapSource? GetFileIcon(string path, int size)
+        {
+            try
+            {
+                SHCreateItemFromParsingName(path, IntPtr.Zero, ref IID_IShellItemImageFactory, out var shellItemObj);
+                if (shellItemObj is not IShellItemImageFactory factory)
+                    return null;
+
+                // Richiedi esplicitamente l'icona del sistema, non la miniatura del contenuto
+                factory.GetImage(new SIZE { cx = size, cy = size }, (uint)SIIGBF.ICONONLY, out IntPtr hBitmap);
+
+                if (hBitmap == IntPtr.Zero)
+                    return null;
+
+                try
+                {
+                    var src = Imaging.CreateBitmapSourceFromHBitmap(hBitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromWidthAndHeight(size, size));
+                    src.Freeze();
+                    return src;
+                }
+                finally
+                {
+                    DeleteObject(hBitmap);
+                    Marshal.ReleaseComObject(factory);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore nel generare icona per {path}: {ex.Message}");
                 return null;
             }
         }
