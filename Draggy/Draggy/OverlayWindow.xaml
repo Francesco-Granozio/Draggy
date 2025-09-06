@@ -174,12 +174,34 @@
                                          Foreground="#FF3B30" />
                                  </Grid>
 
-                                 <Border.InputBindings>
-                                     <MouseBinding
-                                         Command="{Binding DataContext.StartDragCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                         CommandParameter="{Binding}"
-                                         Gesture="LeftClick" />
-                                 </Border.InputBindings>
+                                 <Border.ContextMenu>
+                                     <ContextMenu Placement="MousePoint">
+                                         <ContextMenu.Resources>
+                                             <Style TargetType="MenuItem">
+                                                 <Setter Property="FontFamily" Value="Segoe UI"/>
+                                                 <Setter Property="FontSize" Value="12"/>
+                                             </Style>
+                                         </ContextMenu.Resources>
+                                         <MenuItem Header="Apri file"
+                                                   Command="{Binding OpenFileCommand}">
+                                             <MenuItem.Icon>
+                                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8E5;"/>
+                                             </MenuItem.Icon>
+                                         </MenuItem>
+                                         <MenuItem Header="Copia percorso"
+                                                   Command="{Binding CopyPathCommand}">
+                                             <MenuItem.Icon>
+                                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE8C8;"/>
+                                             </MenuItem.Icon>
+                                         </MenuItem>
+                                         <MenuItem Header="Apri percorso"
+                                                   Command="{Binding OpenFolderCommand}">
+                                             <MenuItem.Icon>
+                                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE838;"/>
+                                             </MenuItem.Icon>
+                                         </MenuItem>
+                                     </ContextMenu>
+                                 </Border.ContextMenu>
                              </Border>
                          </DataTemplate>
                      </ItemsControl.ItemTemplate>

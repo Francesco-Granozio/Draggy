@@ -23,12 +23,18 @@ namespace Draggy.ViewModels
         public ICommand StartDragCommand { get; }
         public ICommand RemoveItemCommand { get; }
         public ICommand ClearAllCommand { get; }
+        public ICommand OpenFileCommand { get; }
+        public ICommand CopyPathCommand { get; }
+        public ICommand OpenFolderCommand { get; }
 
         private ShelfViewModel()
         {
             StartDragCommand = new RelayCommand<ShelfItem>(StartDrag);
             RemoveItemCommand = new RelayCommand<ShelfItem>(RemoveItem);
             ClearAllCommand = new RelayCommand(ClearAll);
+            OpenFileCommand = new RelayCommand<ShelfItem>(OpenFile);
+            CopyPathCommand = new RelayCommand<ShelfItem>(CopyPath);
+            OpenFolderCommand = new RelayCommand<ShelfItem>(OpenFolder);
             
             // Sottoscrivi ai cambiamenti della collezione
             Items.CollectionChanged += (s, e) => 
@@ -92,6 +98,79 @@ namespace Draggy.ViewModels
             {
                 var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new string[] { item.FilePath });
                 System.Windows.DragDrop.DoDragDrop(App.Current.MainWindow, data, System.Windows.DragDropEffects.Copy | System.Windows.DragDropEffects.Move);
+            }
+        }
+
+        private static string GetBestPath(ShelfItem item)
+        {
+            var original = item.OriginalPath;
+            if (!string.IsNullOrWhiteSpace(original) && File.Exists(original))
+                return original;
+            return item.FilePath;
+        }
+
+        private void OpenFile(ShelfItem? item)
+        {
+            if (item == null) return;
+            try
+            {
+                var path = GetBestPath(item);
+                if (File.Exists(path))
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo(path)
+                    {
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore apertura file: {ex.Message}");
+            }
+        }
+
+        private void CopyPath(ShelfItem? item)
+        {
+            if (item == null) return;
+            try
+            {
+                var path = GetBestPath(item);
+                System.Windows.Clipboard.SetText(path);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore copia percorso: {ex.Message}");
+            }
+        }
+
+        private void OpenFolder(ShelfItem? item)
+        {
+            if (item == null) return;
+            try
+            {
+                var path = GetBestPath(item);
+                if (File.Exists(path))
+                {
+                    var argument = $"/select,\"{path}\"";
+                    System.Diagnostics.Process.Start("explorer.exe", argument);
+                }
+                else
+                {
+                    var dir = Path.GetDirectoryName(path);
+                    if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = dir,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore apertura cartella: {ex.Message}");
             }
         }
 

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using System.Windows.Input;
+using Draggy.Commands;
 
 namespace Draggy.ViewModels
 {
@@ -14,6 +16,17 @@ namespace Draggy.ViewModels
         private string _originalPath = string.Empty; // original source path (if known)
         private ImageSource? _thumbnail;
         private bool _disposed = false;
+
+        public ICommand OpenFileCommand { get; }
+        public ICommand CopyPathCommand { get; }
+        public ICommand OpenFolderCommand { get; }
+
+        public ShelfItem()
+        {
+            OpenFileCommand = new RelayCommand(ExecuteOpenFile);
+            CopyPathCommand = new RelayCommand(ExecuteCopyPath);
+            OpenFolderCommand = new RelayCommand(ExecuteOpenFolder);
+        }
 
         public string FilePath 
         { 
@@ -69,6 +82,75 @@ namespace Draggy.ViewModels
         ~ShelfItem()
         {
             Dispose(false);
+        }
+
+        private string GetBestPath()
+        {
+            if (!string.IsNullOrWhiteSpace(_originalPath) && File.Exists(_originalPath))
+                return _originalPath;
+            return _filePath;
+        }
+
+        private void ExecuteOpenFile()
+        {
+            try
+            {
+                var path = GetBestPath();
+                if (File.Exists(path))
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo(path)
+                    {
+                        UseShellExecute = true
+                    };
+                    System.Diagnostics.Process.Start(psi);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore apertura file: {ex.Message}");
+            }
+        }
+
+        private void ExecuteCopyPath()
+        {
+            try
+            {
+                var path = GetBestPath();
+                System.Windows.Clipboard.SetText(path);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore copia percorso: {ex.Message}");
+            }
+        }
+
+        private void ExecuteOpenFolder()
+        {
+            try
+            {
+                var path = GetBestPath();
+                if (File.Exists(path))
+                {
+                    var argument = $"/select,\"{path}\"";
+                    System.Diagnostics.Process.Start("explorer.exe", argument);
+                }
+                else
+                {
+                    var dir = Path.GetDirectoryName(path);
+                    if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = dir,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore apertura cartella: {ex.Message}");
+            }
         }
     }
 }
