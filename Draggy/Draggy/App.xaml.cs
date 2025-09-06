@@ -37,6 +37,10 @@ namespace Draggy
             // La main window è ora l'overlay
             MainWindow = _overlayWindow;
 
+            // Mantieni sempre creata e visibile, ma nascosta fuori dallo schermo quando vuota
+            _overlayWindow.Show();
+            MoveOverlayOffscreen();
+
             // Avvia pulizia periodica della cache (solo file orfani per non rompere gli item correnti)
             StartPeriodicCacheCleanup();
         }
@@ -84,27 +88,18 @@ namespace Draggy
                 
                 if (hasItems)
                 {
-                    // Mostra la finestra se ci sono items (anche se preparata da drag)
-                    if (!_overlayWindow.IsVisible)
-                    {
-                        // Ripristina la posizione salvata
-                        _overlayWindow.Left = _savedLeft;
-                        _overlayWindow.Top = _savedTop;
-                        _overlayWindow.Show();
-                        System.Diagnostics.Debug.WriteLine($"Finestra mostrata in posizione ({_savedLeft}, {_savedTop})");
-                    }
+                    // Riporta la finestra nella posizione salvata, evitando Show/Hide durante il drag
+                    _overlayWindow.Left = _savedLeft;
+                    _overlayWindow.Top = _savedTop;
+                    System.Diagnostics.Debug.WriteLine($"Finestra portata in posizione ({_savedLeft}, {_savedTop})");
                 }
                 else
                 {
-                    // Nascondi la finestra se non ci sono items
-                    if (_overlayWindow.IsVisible)
-                    {
-                        // Salva la posizione corrente prima di nascondere
-                        _savedLeft = _overlayWindow.Left;
-                        _savedTop = _overlayWindow.Top;
-                        _overlayWindow.Hide();
-                        System.Diagnostics.Debug.WriteLine($"Finestra nascosta, posizione salvata ({_savedLeft}, {_savedTop})");
-                    }
+                    // Mantieni la finestra viva ma portala fuori dallo schermo
+                    _savedLeft = _overlayWindow.Left;
+                    _savedTop = _overlayWindow.Top;
+                    MoveOverlayOffscreen();
+                    System.Diagnostics.Debug.WriteLine($"Finestra spostata off-screen, posizione salvata ({_savedLeft}, {_savedTop})");
                 }
             }
         }
@@ -112,12 +107,11 @@ namespace Draggy
         private void OnPotentialDragStart(System.Windows.Point point)
         {
             // Quando viene rilevato un potenziale drag, mostra l'overlay ma disabilita temporaneamente il drop
-            if (_overlayWindow != null && !_overlayWindow.IsVisible)
+            if (_overlayWindow != null)
             {
-                // Imposta la posizione salvata e mostra la finestra
+                // Riporta la finestra nella posizione salvata (senza Show/Hide) per non perdere il drag
                 _overlayWindow.Left = _savedLeft;
                 _overlayWindow.Top = _savedTop;
-                _overlayWindow.Show();
                 _wasShownByDrag = true;
                 
                 // Disabilita temporaneamente il drop per evitare interferenze
@@ -139,7 +133,7 @@ namespace Draggy
                 };
                 timer.Start();
                 
-                System.Diagnostics.Debug.WriteLine($"Drag rilevato a ({point.X}, {point.Y}), overlay mostrato in posizione ({_savedLeft}, {_savedTop}) con drop temporaneamente disabilitato");
+                System.Diagnostics.Debug.WriteLine($"Drag rilevato a ({point.X}, {point.Y}), overlay posizionato in ({_savedLeft}, {_savedTop}) con drop temporaneamente disabilitato");
             }
         }
 
@@ -179,6 +173,17 @@ namespace Draggy
                 catch { }
             };
             _cacheCleanupTimer.Start();
+        }
+
+        private void MoveOverlayOffscreen()
+        {
+            if (_overlayWindow == null)
+                return;
+
+            double offLeft = SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth + 2000;
+            double offTop = SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight + 2000;
+            _overlayWindow.Left = offLeft;
+            _overlayWindow.Top = offTop;
         }
     }
 }

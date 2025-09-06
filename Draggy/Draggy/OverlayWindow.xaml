@@ -6,7 +6,7 @@
     xmlns:local="clr-namespace:Draggy"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Draggy"
-    Width="300"
+    Width="250"
     Height="400"
     AllowDrop="True"
     AllowsTransparency="True"
