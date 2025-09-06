@@ -94,6 +94,35 @@ namespace Draggy.Services
             }
         }
 
+        public static void ClearOrphanedFiles(HashSet<string> activeCachePaths)
+        {
+            if (!Directory.Exists(CacheDirectory))
+                return;
+
+            try
+            {
+                foreach (var file in Directory.GetFiles(CacheDirectory))
+                {
+                    try
+                    {
+                        if (!activeCachePaths.Contains(file))
+                        {
+                            File.Delete(file);
+                            System.Diagnostics.Debug.WriteLine($"File orfano rimosso dalla cache: {Path.GetFileName(file)}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Errore nella rimozione del file orfano {Path.GetFileName(file)}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Errore nella pulizia dei file orfani: {ex.Message}");
+            }
+        }
+
         public static void DeleteFromCache(string filePath)
         {
             if (File.Exists(filePath) && filePath.StartsWith(CacheDirectory))

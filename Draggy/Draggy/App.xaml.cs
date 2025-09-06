@@ -17,6 +17,10 @@ namespace Draggy
         {
             base.OnStartup(e);
 
+            // Pulisci la cache e i thumbnail all'avvio per evitare duplicazioni come "file (1).png"
+            Services.CacheService.ClearCache();
+            Services.ThumbnailCache.ClearCache();
+
             // Inizializza solo l'overlay window unificato
             _overlayWindow = new OverlayWindow();
             
@@ -32,6 +36,9 @@ namespace Draggy
             
             // La main window è ora l'overlay
             MainWindow = _overlayWindow;
+
+            // Avvia pulizia periodica della cache (solo file orfani per non rompere gli item correnti)
+            StartPeriodicCacheCleanup();
         }
 
         private void SetupOverlayWindow()
@@ -141,6 +148,37 @@ namespace Draggy
             // Cleanup
             _mouseHook?.Dispose();
             base.OnExit(e);
+        }
+
+        private System.Windows.Threading.DispatcherTimer? _cacheCleanupTimer;
+        private void StartPeriodicCacheCleanup()
+        {
+            _cacheCleanupTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMinutes(10)
+            };
+            _cacheCleanupTimer.Tick += (s, args) =>
+            {
+                try
+                {
+                    var items = ViewModels.ShelfViewModel.Instance.Items;
+                    if (items.Count == 0)
+                    {
+                        // Nessun item in shelf: pulisci completamente
+                        Services.CacheService.ClearCache();
+                        // I thumbnail verranno ricreati al bisogno
+                        Services.ThumbnailCache.ClearCache();
+                    }
+                    else
+                    {
+                        // Rimuovi solo i file orfani non più referenziati dagli item correnti
+                        var activePaths = new System.Collections.Generic.HashSet<string>(items.Select(i => i.FilePath), System.StringComparer.OrdinalIgnoreCase);
+                        Services.CacheService.ClearOrphanedFiles(activePaths);
+                    }
+                }
+                catch { }
+            };
+            _cacheCleanupTimer.Start();
         }
     }
 }

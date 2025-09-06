@@ -113,15 +113,20 @@ namespace Draggy.ViewModels
 
         private void ClearAll()
         {
-            // Pulisci tutti i file dalla cache fisica
+            // Pulisci tutti i file dalla cache fisica e thumbnail
             foreach (var item in Items)
             {
                 CacheService.DeleteFromCache(item.FilePath);
                 ThumbnailCache.RemoveFromCache(item.FilePath);
             }
-            
+
             Items.Clear();
-            System.Diagnostics.Debug.WriteLine("Tutti gli items rimossi e cache pulita");
+
+            // Rimuovi anche eventuali file residui rimasti nella cache
+            CacheService.ClearCache();
+            ThumbnailCache.ClearCache();
+
+            System.Diagnostics.Debug.WriteLine("Tutti gli items rimossi e cache completamente pulita");
             LogCacheStatistics();
         }
 
