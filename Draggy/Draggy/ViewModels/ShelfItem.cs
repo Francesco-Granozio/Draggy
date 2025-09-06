@@ -10,7 +10,8 @@ namespace Draggy.ViewModels
 {
     public class ShelfItem : IDisposable
     {
-        private string _filePath = string.Empty;
+        private string _filePath = string.Empty; // cached file path
+        private string _originalPath = string.Empty; // original source path (if known)
         private ImageSource? _thumbnail;
         private bool _disposed = false;
 
@@ -20,7 +21,20 @@ namespace Draggy.ViewModels
             set => _filePath = value ?? string.Empty;
         }
         
-        public string FileName => Path.GetFileName(_filePath);
+        public string OriginalPath
+        {
+            get => _originalPath;
+            set => _originalPath = value ?? string.Empty;
+        }
+
+        public string FileName
+        {
+            get
+            {
+                var source = string.IsNullOrEmpty(_originalPath) ? _filePath : _originalPath;
+                return Path.GetFileName(source);
+            }
+        }
         
         public ImageSource? Thumbnail 
         { 

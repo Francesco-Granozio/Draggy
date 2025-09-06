@@ -37,7 +37,7 @@ namespace Draggy.ViewModels
             };
         }
 
-        public void AddItem(string filePath)
+        public void AddItem(string filePath, string? originalPath = null)
         {
             try
             {
@@ -64,6 +64,7 @@ namespace Draggy.ViewModels
                     var item = new ShelfItem
                     {
                         FilePath = filePath,
+                        OriginalPath = originalPath ?? string.Empty,
                         // Usa il nuovo sistema di caching per i thumbnail
                         Thumbnail = ThumbnailCache.GetThumbnail(filePath, 48)
                     };

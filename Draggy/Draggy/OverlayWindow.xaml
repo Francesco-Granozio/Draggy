@@ -156,7 +156,7 @@
                                              FontSize="10"
                                              FontFamily="Segoe UI"
                                              Foreground="#86868B"
-                                             Text="{Binding FilePath}"
+                                             Text="{Binding OriginalPath}"
                                              TextTrimming="CharacterEllipsis" />
                                      </StackPanel>
 

@@ -349,8 +349,8 @@ namespace Draggy
                             var cachedFilePath = Services.CacheService.CopyToCache(file);
                             System.Diagnostics.Debug.WriteLine($"File copied to cache: {cachedFilePath}");
                             
-                            // Aggiungi l'item alla shelf
-                            ViewModels.ShelfViewModel.Instance.AddItem(cachedFilePath);
+                            // Aggiungi l'item alla shelf con percorso originale
+                            ViewModels.ShelfViewModel.Instance.AddItem(cachedFilePath, file);
                             System.Diagnostics.Debug.WriteLine($"File added to shelf");
                         }
                         catch (Exception ex)
@@ -378,7 +378,8 @@ namespace Draggy
                     {
                         try
                         {
-                            ViewModels.ShelfViewModel.Instance.AddItem(path);
+                            // Per i virtual files, non sempre conosciamo l'originale; usa solo il path in cache
+                            ViewModels.ShelfViewModel.Instance.AddItem(path, null);
                         }
                         catch (Exception ex)
                         {
@@ -400,7 +401,7 @@ namespace Draggy
                     {
                         try
                         {
-                            ViewModels.ShelfViewModel.Instance.AddItem(path);
+                            ViewModels.ShelfViewModel.Instance.AddItem(path, null);
                         }
                         catch (Exception ex)
                         {
