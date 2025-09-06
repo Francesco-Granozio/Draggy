@@ -49,9 +49,14 @@ namespace Draggy
         {
             if (_overlayWindow != null)
             {
-                // Calcola la posizione iniziale una sola volta
-                double initialLeft = SystemParameters.PrimaryScreenWidth - 370;
-                double initialTop = 20;
+                // Carica la posizione salvata se disponibile, altrimenti calcola una posizione di default
+                double initialLeft;
+                double initialTop;
+                if (!Services.SettingsService.TryLoadWindowPosition(out initialLeft, out initialTop))
+                {
+                    initialLeft = SystemParameters.PrimaryScreenWidth - 370;
+                    initialTop = 20;
+                }
                 
                 // Imposta e salva la posizione iniziale
                 _overlayWindow.Left = initialLeft;
@@ -68,6 +73,7 @@ namespace Draggy
         private bool _wasShownByDrag = false;
         private double _savedLeft = 0;
         private double _savedTop = 0;
+        private bool _isWindowBeingMoved = false;
 
         public void ResetDragFlag()
         {
@@ -78,6 +84,8 @@ namespace Draggy
         {
             _savedLeft = left;
             _savedTop = top;
+            // Persisti la posizione su disco
+            Services.SettingsService.SaveWindowPosition(left, top);
         }
 
         private void OnItemsChanged(bool hasItems)
@@ -107,7 +115,7 @@ namespace Draggy
         private void OnPotentialDragStart(System.Windows.Point point)
         {
             // Quando viene rilevato un potenziale drag, mostra l'overlay ma disabilita temporaneamente il drop
-            if (_overlayWindow != null)
+            if (_overlayWindow != null && !_isWindowBeingMoved)
             {
                 // Riporta la finestra nella posizione salvata (senza Show/Hide) per non perdere il drag
                 _overlayWindow.Left = _savedLeft;
@@ -184,6 +192,16 @@ namespace Draggy
             double offTop = SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight + 2000;
             _overlayWindow.Left = offLeft;
             _overlayWindow.Top = offTop;
+        }
+
+        public void StartWindowMove()
+        {
+            _isWindowBeingMoved = true;
+        }
+
+        public void EndWindowMove()
+        {
+            _isWindowBeingMoved = false;
         }
     }
 }

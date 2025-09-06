@@ -33,13 +33,24 @@ namespace Draggy
         private void Header_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             // Permette di trascinare la finestra cliccando sull'header
-            this.DragMove();
-            
-            // Aggiorna le posizioni salvate dopo il movimento
             if (App.Current is App app)
             {
-                app.UpdateSavedPosition(this.Left, this.Top);
-                System.Diagnostics.Debug.WriteLine($"Posizione salvata: ({this.Left}, {this.Top})");
+                try
+                {
+                    app.StartWindowMove();
+                    // Disabilita il drop durante lo spostamento per evitare trigger di drag
+                    var previousAllowDrop = this.AllowDrop;
+                    this.AllowDrop = false;
+                    this.DragMove();
+                    this.AllowDrop = previousAllowDrop;
+                }
+                finally
+                {
+                    // Aggiorna le posizioni salvate dopo il movimento
+                    app.UpdateSavedPosition(this.Left, this.Top);
+                    app.EndWindowMove();
+                    System.Diagnostics.Debug.WriteLine($"Posizione salvata: ({this.Left}, {this.Top})");
+                }
             }
         }
 
